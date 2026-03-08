@@ -1,0 +1,6 @@
+---
+- name: Install CLI tools
+  hosts: all
+  become: true
+  roles:
+    - cli_tools

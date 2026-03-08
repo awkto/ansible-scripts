@@ -1,0 +1,9 @@
+---
+- name: daemon reload
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: restart openbao
+  ansible.builtin.systemd:
+    name: openbao
+    state: restarted

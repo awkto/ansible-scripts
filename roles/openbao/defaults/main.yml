@@ -1,0 +1,5 @@
+openbao_version: "2.5.1"
+openbao_mode: dev  # dev or prod
+openbao_listen_address: "0.0.0.0:8200"
+openbao_dev_root_token: "dev-only-token"
+openbao_storage_path: /opt/openbao/data

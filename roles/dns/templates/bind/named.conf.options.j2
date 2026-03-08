@@ -1,0 +1,16 @@
+options {
+    directory "/var/cache/bind";
+
+    listen-on { {{ dns_listen_address }}; };
+    listen-on-v6 { any; };
+
+    forwarders {
+{% for fwd in dns_forwarders %}
+        {{ fwd }};
+{% endfor %}
+    };
+
+    dnssec-validation auto;
+    allow-query { any; };
+    recursion yes;
+};

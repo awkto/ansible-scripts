@@ -1,0 +1,6 @@
+---
+- name: Install and configure DNS server
+  hosts: all
+  become: true
+  roles:
+    - dns

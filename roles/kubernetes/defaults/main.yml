@@ -1,0 +1,4 @@
+k8s_distro: k3s  # k3s or rke2
+k8s_fqdn: "{{ ansible_fqdn }}"
+k8s_version: ""  # empty for latest
+k8s_tls_san: "{{ k8s_fqdn }}"  # additional SAN for API server cert

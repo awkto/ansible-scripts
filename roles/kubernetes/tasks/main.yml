@@ -1,0 +1,130 @@
+---
+- name: Install k3s
+  when: k8s_distro == "k3s"
+  block:
+    - name: Check if k3s is installed
+      ansible.builtin.stat:
+        path: /usr/local/bin/k3s
+      register: k3s_bin
+
+    - name: Download k3s installer
+      ansible.builtin.get_url:
+        url: https://get.k3s.io
+        dest: /tmp/k3s-install.sh
+        mode: "0755"
+      when: not k3s_bin.stat.exists
+
+    - name: Set k3s install env (versioned)
+      ansible.builtin.set_fact:
+        k3s_env:
+          INSTALL_K3S_VERSION: "{{ k8s_version }}"
+      when: k8s_version | length > 0
+
+    - name: Set k3s install env (latest)
+      ansible.builtin.set_fact:
+        k3s_env: {}
+      when: k8s_version | length == 0
+
+    - name: Install k3s
+      ansible.builtin.command: /tmp/k3s-install.sh
+      environment: "{{ k3s_env }}"
+      when: not k3s_bin.stat.exists
+
+    - name: Write k3s config with TLS SAN
+      ansible.builtin.template:
+        src: k3s-config.yaml.j2
+        dest: /etc/rancher/k3s/config.yaml
+        mode: "0644"
+      notify: restart k3s
+
+    - name: Ensure k3s is running
+      ansible.builtin.systemd:
+        name: k3s
+        enabled: true
+        state: started
+
+    - name: Wait for k3s to be ready
+      ansible.builtin.command: k3s kubectl get nodes
+      register: k3s_nodes
+      retries: 10
+      delay: 5
+      until: k3s_nodes.rc == 0
+      changed_when: false
+
+    - name: Display kubeconfig location
+      ansible.builtin.debug:
+        msg: "Kubeconfig is at /etc/rancher/k3s/k3s.yaml. API server has TLS SAN: {{ k8s_tls_san }}"
+
+- name: Install RKE2
+  when: k8s_distro == "rke2"
+  block:
+    - name: Check if rke2 is installed
+      ansible.builtin.stat:
+        path: /usr/local/bin/rke2
+      register: rke2_bin
+
+    - name: Download rke2 installer
+      ansible.builtin.get_url:
+        url: https://get.rke2.io
+        dest: /tmp/rke2-install.sh
+        mode: "0755"
+      when: not rke2_bin.stat.exists
+
+    - name: Set rke2 install env (versioned)
+      ansible.builtin.set_fact:
+        rke2_env:
+          INSTALL_RKE2_VERSION: "{{ k8s_version }}"
+      when: k8s_version | length > 0
+
+    - name: Set rke2 install env (latest)
+      ansible.builtin.set_fact:
+        rke2_env: {}
+      when: k8s_version | length == 0
+
+    - name: Install rke2
+      ansible.builtin.command: /tmp/rke2-install.sh
+      environment: "{{ rke2_env }}"
+      when: not rke2_bin.stat.exists
+
+    - name: Create rke2 config directory
+      ansible.builtin.file:
+        path: /etc/rancher/rke2
+        state: directory
+        mode: "0755"
+
+    - name: Write rke2 config with TLS SAN
+      ansible.builtin.template:
+        src: rke2-config.yaml.j2
+        dest: /etc/rancher/rke2/config.yaml
+        mode: "0644"
+      notify: restart rke2
+
+    - name: Enable and start rke2
+      ansible.builtin.systemd:
+        name: rke2-server
+        enabled: true
+        state: started
+
+    - name: Add rke2 bin to PATH
+      ansible.builtin.copy:
+        content: 'export PATH=$PATH:/var/lib/rancher/rke2/bin'
+        dest: /etc/profile.d/rke2.sh
+        mode: "0644"
+
+    - name: Symlink kubectl
+      ansible.builtin.file:
+        src: /var/lib/rancher/rke2/bin/kubectl
+        dest: /usr/local/bin/kubectl
+        state: link
+
+    - name: Wait for rke2 to be ready
+      ansible.builtin.command: /var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml get nodes
+      register: rke2_nodes
+      retries: 20
+      delay: 10
+      until: rke2_nodes.rc == 0
+      changed_when: false
+
+    - name: Display kubeconfig location
+      ansible.builtin.debug:
+        msg: "Kubeconfig is at /etc/rancher/rke2/rke2.yaml. API server has TLS SAN: {{ k8s_tls_san }}"

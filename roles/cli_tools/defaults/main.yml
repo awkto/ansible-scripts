@@ -1,0 +1,10 @@
+install_kubectl: true
+install_doctl: true
+install_gh_cli: true
+install_cloudflared: true
+install_bw_cli: true
+install_bao_cli: true
+
+doctl_version: "1.114.0"
+cloudflared_version: ""  # empty for latest
+bao_cli_version: "2.5.1"

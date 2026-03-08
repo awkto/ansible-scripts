@@ -1,0 +1,21 @@
+#!/bin/bash
+# Auto-unseal script for OpenBao
+KEYS_FILE="/opt/openbao/init-keys.json"
+BAO_ADDR="http://127.0.0.1:{{ openbao_listen_address.split(':')[1] }}"
+export BAO_ADDR
+
+if [ ! -f "$KEYS_FILE" ]; then
+  echo "No init keys found, skipping unseal"
+  exit 0
+fi
+
+# Wait for API
+for i in $(seq 1 30); do
+  if curl -sf "$BAO_ADDR/v1/sys/health" -o /dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+
+UNSEAL_KEY=$(python3 -c "import json; print(json.load(open('$KEYS_FILE'))['unseal_keys_b64'][0])")
+bao operator unseal "$UNSEAL_KEY"

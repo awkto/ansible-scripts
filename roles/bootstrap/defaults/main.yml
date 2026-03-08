@@ -1,0 +1,15 @@
+bootstrap_username: ""
+bootstrap_user_sudo: true
+bootstrap_passwordless_sudo: true
+bootstrap_shell: /bin/bash
+bootstrap_ssh_pubkeys: []          # list of raw public key strings
+bootstrap_github_username: ""      # fetch pubkeys from GitHub
+bootstrap_bashrc_extras: |
+  alias ll='ls -alF'
+  alias la='ls -A'
+  export EDITOR=vim
+bootstrap_inputrc_extras: |
+  set show-all-if-ambiguous on
+  set completion-ignore-case on
+  "\e[A": history-search-backward
+  "\e[B": history-search-forward

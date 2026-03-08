@@ -1,0 +1,144 @@
+---
+# kubectl
+- name: Install kubectl
+  when: install_kubectl
+  block:
+    - name: Add Kubernetes apt key
+      ansible.builtin.shell: |
+        curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.32/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+      args:
+        creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+    - name: Add Kubernetes apt repository
+      ansible.builtin.copy:
+        content: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.32/deb/ /"
+        dest: /etc/apt/sources.list.d/kubernetes.list
+        mode: "0644"
+
+    - name: Install kubectl
+      ansible.builtin.apt:
+        name: kubectl
+        state: present
+        update_cache: true
+
+# doctl
+- name: Install doctl
+  when: install_doctl
+  block:
+    - name: Check if doctl is installed
+      ansible.builtin.stat:
+        path: /usr/local/bin/doctl
+      register: doctl_bin
+
+    - name: Download doctl
+      ansible.builtin.get_url:
+        url: "https://github.com/digitalocean/doctl/releases/download/v{{ doctl_version }}/doctl-{{ doctl_version }}-linux-{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}.tar.gz"
+        dest: /tmp/doctl.tar.gz
+        mode: "0644"
+      when: not doctl_bin.stat.exists
+
+    - name: Extract doctl
+      ansible.builtin.unarchive:
+        src: /tmp/doctl.tar.gz
+        dest: /usr/local/bin
+        remote_src: true
+      when: not doctl_bin.stat.exists
+
+# gh CLI
+- name: Install gh CLI
+  when: install_gh_cli
+  block:
+    - name: Add GitHub CLI apt key
+      ansible.builtin.shell: |
+        curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+      args:
+        creates: /usr/share/keyrings/githubcli-archive-keyring.gpg
+
+    - name: Add GitHub CLI repository
+      ansible.builtin.copy:
+        content: "deb [arch={{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }} signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main"
+        dest: /etc/apt/sources.list.d/github-cli.list
+        mode: "0644"
+
+    - name: Install gh
+      ansible.builtin.apt:
+        name: gh
+        state: present
+        update_cache: true
+
+# cloudflared
+- name: Install cloudflared
+  when: install_cloudflared
+  block:
+    - name: Add Cloudflare GPG key
+      ansible.builtin.shell: |
+        curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | gpg --dearmor -o /usr/share/keyrings/cloudflare-main.gpg
+      args:
+        creates: /usr/share/keyrings/cloudflare-main.gpg
+
+    - name: Add Cloudflare repository
+      ansible.builtin.copy:
+        content: "deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared {{ ansible_distribution_release }} main"
+        dest: /etc/apt/sources.list.d/cloudflared.list
+        mode: "0644"
+
+    - name: Install cloudflared
+      ansible.builtin.apt:
+        name: cloudflared
+        state: present
+        update_cache: true
+
+# Bitwarden CLI
+- name: Install Bitwarden CLI
+  when: install_bw_cli
+  block:
+    - name: Check if bw is installed
+      ansible.builtin.stat:
+        path: /usr/local/bin/bw
+      register: bw_bin
+
+    - name: Install unzip
+      ansible.builtin.apt:
+        name: unzip
+        state: present
+
+    - name: Download Bitwarden CLI
+      ansible.builtin.get_url:
+        url: "https://github.com/bitwarden/clients/releases/latest/download/bw-linux-{{ '2024.11.0' if ansible_architecture == 'x86_64' else '2024.11.0' }}.zip"
+        dest: /tmp/bw.zip
+        mode: "0644"
+      when: not bw_bin.stat.exists
+
+    - name: Extract Bitwarden CLI
+      ansible.builtin.unarchive:
+        src: /tmp/bw.zip
+        dest: /usr/local/bin
+        remote_src: true
+      when: not bw_bin.stat.exists
+
+    - name: Set bw permissions
+      ansible.builtin.file:
+        path: /usr/local/bin/bw
+        mode: "0755"
+      when: not bw_bin.stat.exists
+
+# Bao CLI (OpenBao)
+- name: Install bao CLI
+  when: install_bao_cli
+  block:
+    - name: Check if bao is installed
+      ansible.builtin.stat:
+        path: /usr/bin/bao
+      register: bao_bin
+
+    - name: Download bao deb
+      ansible.builtin.get_url:
+        url: "https://github.com/openbao/openbao/releases/download/v{{ bao_cli_version }}/bao_{{ bao_cli_version }}_linux_{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}.deb"
+        dest: /tmp/bao.deb
+        mode: "0644"
+      when: not bao_bin.stat.exists
+
+    - name: Install bao deb
+      ansible.builtin.apt:
+        deb: /tmp/bao.deb
+      when: not bao_bin.stat.exists

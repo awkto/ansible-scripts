@@ -1,0 +1,6 @@
+---
+- name: Install and configure Kubernetes (k3s or RKE2)
+  hosts: all
+  become: true
+  roles:
+    - kubernetes

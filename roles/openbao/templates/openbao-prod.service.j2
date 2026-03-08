@@ -1,0 +1,17 @@
+[Unit]
+Description=OpenBao Secret Management
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=openbao
+Group=openbao
+ExecStart=/usr/bin/bao server -config=/etc/openbao/config.hcl
+ExecStartPost=/opt/openbao/unseal.sh
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65536
+LimitMEMLOCK=infinity
+
+[Install]
+WantedBy=multi-user.target

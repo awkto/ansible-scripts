@@ -1,0 +1,86 @@
+---
+# BIND
+- name: Install and configure BIND
+  when: dns_server == "bind"
+  block:
+    - name: Install BIND
+      ansible.builtin.apt:
+        name:
+          - bind9
+          - bind9utils
+          - bind9-dnsutils
+        state: present
+        update_cache: true
+
+    - name: Configure named.conf.options
+      ansible.builtin.template:
+        src: bind/named.conf.options.j2
+        dest: /etc/bind/named.conf.options
+        mode: "0644"
+      notify: restart bind
+
+    - name: Configure named.conf.local
+      ansible.builtin.template:
+        src: bind/named.conf.local.j2
+        dest: /etc/bind/named.conf.local
+        mode: "0644"
+      notify: restart bind
+
+    - name: Create zone file
+      ansible.builtin.template:
+        src: bind/zone.j2
+        dest: "/etc/bind/db.{{ dns_zone }}"
+        mode: "0644"
+      notify: restart bind
+
+    - name: Enable and start BIND
+      ansible.builtin.systemd:
+        name: named
+        enabled: true
+        state: started
+
+# dnsmasq
+- name: Install and configure dnsmasq
+  when: dns_server == "dnsmasq"
+  block:
+    - name: Install dnsmasq
+      ansible.builtin.apt:
+        name: dnsmasq
+        state: present
+        update_cache: true
+
+    - name: Configure dnsmasq
+      ansible.builtin.template:
+        src: dnsmasq/dnsmasq.conf.j2
+        dest: /etc/dnsmasq.d/custom.conf
+        mode: "0644"
+      notify: restart dnsmasq
+
+    - name: Enable and start dnsmasq
+      ansible.builtin.systemd:
+        name: dnsmasq
+        enabled: true
+        state: started
+
+# Unbound
+- name: Install and configure Unbound
+  when: dns_server == "unbound"
+  block:
+    - name: Install unbound
+      ansible.builtin.apt:
+        name: unbound
+        state: present
+        update_cache: true
+
+    - name: Configure unbound
+      ansible.builtin.template:
+        src: unbound/unbound.conf.j2
+        dest: /etc/unbound/unbound.conf.d/custom.conf
+        mode: "0644"
+      notify: restart unbound
+
+    - name: Enable and start unbound
+      ansible.builtin.systemd:
+        name: unbound
+        enabled: true
+        state: started

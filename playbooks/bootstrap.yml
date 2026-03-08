@@ -1,0 +1,6 @@
+---
+- name: Bootstrap Linux VM
+  hosts: all
+  become: true
+  roles:
+    - bootstrap

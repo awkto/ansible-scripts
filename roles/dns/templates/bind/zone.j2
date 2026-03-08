@@ -1,0 +1,17 @@
+$TTL    604800
+@       IN      SOA     ns1.{{ dns_zone }}. admin.{{ dns_zone }}. (
+                              {{ ansible_date_time.epoch }}  ; Serial
+                         604800         ; Refresh
+                          86400         ; Retry
+                        2419200         ; Expire
+                         604800 )       ; Negative Cache TTL
+
+@       IN      NS      ns1.{{ dns_zone }}.
+
+{% for record in dns_records %}
+{% if record.name == "@" %}
+{{ dns_zone }}.    IN      {{ record.type }}       {{ record.value }}
+{% else %}
+{{ record.name }}    IN      {{ record.type }}       {{ record.value }}
+{% endif %}
+{% endfor %}

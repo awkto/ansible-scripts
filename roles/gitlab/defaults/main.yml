@@ -1,0 +1,6 @@
+gitlab_edition: gitlab-ce  # gitlab-ce or gitlab-ee
+gitlab_version: ""  # empty for latest, or e.g. "17.4.0-ce.0"
+gitlab_external_url: "https://{{ ansible_fqdn }}"
+gitlab_ssl_enabled: true
+gitlab_ssl_cert_path: ""  # path to .crt on the controller, copied to target
+gitlab_ssl_key_path: ""   # path to .key on the controller, copied to target

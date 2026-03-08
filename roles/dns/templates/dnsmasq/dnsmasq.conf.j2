@@ -1,0 +1,19 @@
+listen-address={{ dns_listen_address }}
+bind-interfaces
+
+{% for fwd in dns_forwarders %}
+server={{ fwd }}
+{% endfor %}
+
+# Zone records
+{% for record in dns_records %}
+{% if record.type == "A" %}
+{% if record.name == "@" %}
+address=/{{ dns_zone }}/{{ record.value }}
+{% else %}
+address=/{{ record.name }}.{{ dns_zone }}/{{ record.value }}
+{% endif %}
+{% elif record.type == "CNAME" %}
+cname={{ record.name }}.{{ dns_zone }},{{ record.value }}
+{% endif %}
+{% endfor %}

@@ -1,0 +1,16 @@
+[Unit]
+Description=OpenBao Secret Management (Dev Mode)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=openbao
+Group=openbao
+ExecStart=/usr/bin/bao server -dev -dev-listen-address={{ openbao_listen_address }} -dev-root-token-id={{ openbao_dev_root_token }}
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65536
+LimitMEMLOCK=infinity
+
+[Install]
+WantedBy=multi-user.target

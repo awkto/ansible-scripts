@@ -1,0 +1,10 @@
+ui = true
+
+listener "tcp" {
+  address     = "{{ openbao_listen_address }}"
+  tls_disable = 1
+}
+
+storage "file" {
+  path = "{{ openbao_storage_path }}"
+}

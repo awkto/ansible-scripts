@@ -1,0 +1,89 @@
+---
+- name: Install GitLab dependencies
+  ansible.builtin.apt:
+    name:
+      - curl
+      - openssh-server
+      - ca-certificates
+      - tzdata
+      - perl
+      - postfix
+    state: present
+    update_cache: true
+
+- name: Check if GitLab is already installed
+  ansible.builtin.stat:
+    path: /opt/gitlab
+  register: gitlab_installed
+
+- name: Add GitLab repository
+  ansible.builtin.shell: |
+    curl -fsSL "https://packages.gitlab.com/install/repositories/gitlab/{{ gitlab_edition }}/script.deb.sh" | bash
+  args:
+    creates: /etc/apt/sources.list.d/gitlab_{{ gitlab_edition }}.list
+  when: not gitlab_installed.stat.exists
+
+- name: Set GitLab package name with version
+  ansible.builtin.set_fact:
+    gitlab_package: "{{ gitlab_edition }}={{ gitlab_version }}"
+  when: gitlab_version | length > 0
+
+- name: Set GitLab package name without version
+  ansible.builtin.set_fact:
+    gitlab_package: "{{ gitlab_edition }}"
+  when: gitlab_version | length == 0
+
+- name: Install GitLab
+  ansible.builtin.apt:
+    name: "{{ gitlab_package }}"
+    state: present
+    update_cache: true
+  environment:
+    EXTERNAL_URL: "{{ gitlab_external_url }}"
+  when: not gitlab_installed.stat.exists
+
+- name: Set external URL in gitlab.rb
+  ansible.builtin.lineinfile:
+    path: /etc/gitlab/gitlab.rb
+    regexp: "^external_url "
+    line: "external_url '{{ gitlab_external_url }}'"
+  notify: reconfigure gitlab
+
+- name: Create SSL directory
+  ansible.builtin.file:
+    path: /etc/gitlab/ssl
+    state: directory
+    mode: "0755"
+  when: gitlab_ssl_enabled
+
+- name: Copy SSL certificate
+  ansible.builtin.copy:
+    src: "{{ gitlab_ssl_cert_path }}"
+    dest: "/etc/gitlab/ssl/{{ gitlab_external_url | regex_replace('https?://', '') }}.crt"
+    mode: "0644"
+  when: gitlab_ssl_enabled and gitlab_ssl_cert_path | length > 0
+  notify: reconfigure gitlab
+
+- name: Copy SSL private key
+  ansible.builtin.copy:
+    src: "{{ gitlab_ssl_key_path }}"
+    dest: "/etc/gitlab/ssl/{{ gitlab_external_url | regex_replace('https?://', '') }}.key"
+    mode: "0600"
+  when: gitlab_ssl_enabled and gitlab_ssl_key_path | length > 0
+  notify: reconfigure gitlab
+
+- name: Configure SSL in gitlab.rb
+  ansible.builtin.blockinfile:
+    path: /etc/gitlab/gitlab.rb
+    marker: "# {mark} MANAGED BY ANSIBLE - SSL"
+    block: |
+      nginx['redirect_http_to_https'] = true
+      nginx['ssl_certificate'] = "/etc/gitlab/ssl/{{ gitlab_external_url | regex_replace('https?://', '') }}.crt"
+      nginx['ssl_certificate_key'] = "/etc/gitlab/ssl/{{ gitlab_external_url | regex_replace('https?://', '') }}.key"
+  when: gitlab_ssl_enabled
+  notify: reconfigure gitlab
+
+- name: Display initial root password location
+  ansible.builtin.debug:
+    msg: "Initial root password is at /etc/gitlab/initial_root_password (deleted after 24h)"
+  when: not gitlab_installed.stat.exists

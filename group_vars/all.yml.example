@@ -1,0 +1,23 @@
+# Global variables - copy to all.yml and customize
+
+# Bootstrap
+bootstrap_username: altan
+bootstrap_github_username: awkto
+bootstrap_passwordless_sudo: true
+
+# GitLab
+gitlab_edition: gitlab-ce
+gitlab_external_url: "https://gitlab.example.com"
+gitlab_ssl_cert_path: /etc/gitlab/ssl/gitlab.example.com.crt
+gitlab_ssl_key_path: /etc/gitlab/ssl/gitlab.example.com.key
+
+# OpenBao
+openbao_mode: dev  # dev or prod
+
+# Kubernetes
+k8s_distro: k3s  # k3s or rke2
+k8s_fqdn: k8s.example.com
+
+# DNS
+dns_server: unbound  # bind, dnsmasq, or unbound
+dns_zone: example.com

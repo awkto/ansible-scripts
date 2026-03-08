@@ -1,0 +1,26 @@
+server:
+    interface: {{ dns_listen_address }}
+    access-control: 0.0.0.0/0 allow
+    verbosity: 1
+
+{% for fwd in dns_forwarders %}
+    forward-zone:
+        name: "."
+        forward-addr: {{ fwd }}
+{% endfor %}
+
+    local-zone: "{{ dns_zone }}." static
+
+{% for record in dns_records %}
+{% if record.type == "A" %}
+{% if record.name == "@" %}
+    local-data: "{{ dns_zone }}. IN A {{ record.value }}"
+{% else %}
+    local-data: "{{ record.name }}.{{ dns_zone }}. IN A {{ record.value }}"
+{% endif %}
+{% elif record.type == "CNAME" %}
+{% if record.name != "@" %}
+    local-data: "{{ record.name }}.{{ dns_zone }}. IN CNAME {{ record.value }}"
+{% endif %}
+{% endif %}
+{% endfor %}
