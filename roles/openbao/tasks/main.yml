@@ -20,7 +20,7 @@
 
 - name: Download OpenBao deb package
   ansible.builtin.get_url:
-    url: "https://github.com/openbao/openbao/releases/download/v{{ openbao_version }}/bao_{{ openbao_version }}_linux_{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}.deb"
+    url: "https://github.com/openbao/openbao/releases/download/v{{ openbao_version }}/openbao_{{ openbao_version }}_linux_{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}.deb"
     dest: "/tmp/openbao_{{ openbao_version }}.deb"
     mode: "0644"
 

@@ -3,12 +3,6 @@ server:
     access-control: 0.0.0.0/0 allow
     verbosity: 1
 
-{% for fwd in dns_forwarders %}
-    forward-zone:
-        name: "."
-        forward-addr: {{ fwd }}
-{% endfor %}
-
     local-zone: "{{ dns_zone }}." static
 
 {% for record in dns_records %}
@@ -23,4 +17,10 @@ server:
     local-data: "{{ record.name }}.{{ dns_zone }}. IN CNAME {{ record.value }}"
 {% endif %}
 {% endif %}
+{% endfor %}
+
+forward-zone:
+    name: "."
+{% for fwd in dns_forwarders %}
+    forward-addr: {{ fwd }}
 {% endfor %}

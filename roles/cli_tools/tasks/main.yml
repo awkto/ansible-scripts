@@ -1,7 +1,7 @@
 ---
 # kubectl
 - name: Install kubectl
-  when: install_kubectl
+  when: install_kubectl | bool
   block:
     - name: Add Kubernetes apt key
       ansible.builtin.shell: |
@@ -23,7 +23,7 @@
 
 # doctl
 - name: Install doctl
-  when: install_doctl
+  when: install_doctl | bool
   block:
     - name: Check if doctl is installed
       ansible.builtin.stat:
@@ -46,7 +46,7 @@
 
 # gh CLI
 - name: Install gh CLI
-  when: install_gh_cli
+  when: install_gh_cli | bool
   block:
     - name: Add GitHub CLI apt key
       ansible.builtin.shell: |
@@ -68,7 +68,7 @@
 
 # cloudflared
 - name: Install cloudflared
-  when: install_cloudflared
+  when: install_cloudflared | bool
   block:
     - name: Add Cloudflare GPG key
       ansible.builtin.shell: |
@@ -90,7 +90,7 @@
 
 # Bitwarden CLI
 - name: Install Bitwarden CLI
-  when: install_bw_cli
+  when: install_bw_cli | bool
   block:
     - name: Check if bw is installed
       ansible.builtin.stat:
@@ -104,7 +104,7 @@
 
     - name: Download Bitwarden CLI
       ansible.builtin.get_url:
-        url: "https://github.com/bitwarden/clients/releases/latest/download/bw-linux-{{ '2024.11.0' if ansible_architecture == 'x86_64' else '2024.11.0' }}.zip"
+        url: "https://vault.bitwarden.com/download/?app=cli&platform=linux"
         dest: /tmp/bw.zip
         mode: "0644"
       when: not bw_bin.stat.exists
@@ -124,7 +124,7 @@
 
 # Bao CLI (OpenBao)
 - name: Install bao CLI
-  when: install_bao_cli
+  when: install_bao_cli | bool
   block:
     - name: Check if bao is installed
       ansible.builtin.stat:
@@ -133,7 +133,7 @@
 
     - name: Download bao deb
       ansible.builtin.get_url:
-        url: "https://github.com/openbao/openbao/releases/download/v{{ bao_cli_version }}/bao_{{ bao_cli_version }}_linux_{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}.deb"
+        url: "https://github.com/openbao/openbao/releases/download/v{{ bao_cli_version }}/openbao_{{ bao_cli_version }}_linux_{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}.deb"
         dest: /tmp/bao.deb
         mode: "0644"
       when: not bao_bin.stat.exists

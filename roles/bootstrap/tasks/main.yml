@@ -33,7 +33,7 @@
     name: "{{ bootstrap_username }}"
     groups: sudo
     append: true
-  when: bootstrap_username | length > 0 and bootstrap_user_sudo
+  when: bootstrap_username | length > 0 and (bootstrap_user_sudo | bool)
 
 - name: Configure passwordless sudo
   ansible.builtin.copy:
@@ -41,13 +41,13 @@
     dest: "/etc/sudoers.d/{{ bootstrap_username }}"
     mode: "0440"
     validate: "visudo -cf %s"
-  when: bootstrap_username | length > 0 and bootstrap_user_sudo and bootstrap_passwordless_sudo
+  when: bootstrap_username | length > 0 and (bootstrap_user_sudo | bool) and (bootstrap_passwordless_sudo | bool)
 
 - name: Configure sudo with password
   ansible.builtin.file:
     path: "/etc/sudoers.d/{{ bootstrap_username }}"
     state: absent
-  when: bootstrap_username | length > 0 and bootstrap_user_sudo and not bootstrap_passwordless_sudo
+  when: bootstrap_username | length > 0 and (bootstrap_user_sudo | bool) and not (bootstrap_passwordless_sudo | bool)
 
 - name: Fetch SSH keys from GitHub
   ansible.builtin.uri:

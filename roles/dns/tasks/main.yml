@@ -1,4 +1,19 @@
 ---
+- name: Stop and disable systemd-resolved (frees port 53)
+  ansible.builtin.systemd:
+    name: systemd-resolved
+    state: stopped
+    enabled: false
+  failed_when: false
+
+- name: Set resolv.conf to use localhost
+  ansible.builtin.copy:
+    content: |
+      nameserver 127.0.0.1
+      nameserver 1.1.1.1
+    dest: /etc/resolv.conf
+    mode: "0644"
+
 # BIND
 - name: Install and configure BIND
   when: dns_server == "bind"
