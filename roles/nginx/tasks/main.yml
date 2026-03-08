@@ -1,0 +1,77 @@
+---
+- name: Install nginx
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+    update_cache: true
+
+- name: Enable and start nginx
+  ansible.builtin.systemd:
+    name: nginx
+    enabled: true
+    state: started
+
+- name: Set up reverse proxy site
+  when: nginx_create_proxy | bool
+  block:
+    - name: Set site name default
+      ansible.builtin.set_fact:
+        _nginx_site_name: "{{ nginx_site_name if nginx_site_name | length > 0 else nginx_site_fqdn }}"
+
+    - name: Set SSL cert paths (user-provided)
+      ansible.builtin.set_fact:
+        _nginx_ssl_cert: "{{ nginx_ssl_cert }}"
+        _nginx_ssl_key: "{{ nginx_ssl_key }}"
+      when: (nginx_enable_ssl | bool) and nginx_ssl_cert | length > 0
+
+    - name: Set SSL cert paths (self-signed)
+      ansible.builtin.set_fact:
+        _nginx_ssl_cert: "/etc/nginx/ssl/{{ nginx_site_fqdn }}/fullchain.pem"
+        _nginx_ssl_key: "/etc/nginx/ssl/{{ nginx_site_fqdn }}/key.pem"
+      when: (nginx_enable_ssl | bool) and nginx_ssl_cert | length == 0
+
+    - name: Create SSL directory
+      ansible.builtin.file:
+        path: "/etc/nginx/ssl/{{ nginx_site_fqdn }}"
+        state: directory
+        mode: "0755"
+      when: (nginx_enable_ssl | bool) and nginx_ssl_cert | length == 0
+
+    - name: Generate self-signed certificate
+      ansible.builtin.command: >
+        openssl req -x509 -nodes -days 365 -newkey rsa:2048
+        -keyout /etc/nginx/ssl/{{ nginx_site_fqdn }}/key.pem
+        -out /etc/nginx/ssl/{{ nginx_site_fqdn }}/fullchain.pem
+        -subj "/CN={{ nginx_site_fqdn }}"
+      args:
+        creates: "/etc/nginx/ssl/{{ nginx_site_fqdn }}/fullchain.pem"
+      when: (nginx_enable_ssl | bool) and nginx_ssl_cert | length == 0
+
+    - name: Create proxy config (HTTP only)
+      ansible.builtin.template:
+        src: proxy-http.conf.j2
+        dest: "/etc/nginx/sites-available/{{ _nginx_site_name }}"
+        mode: "0644"
+      when: not (nginx_enable_ssl | bool)
+      notify: test and reload nginx
+
+    - name: Create proxy config (HTTPS with redirect)
+      ansible.builtin.template:
+        src: proxy-https.conf.j2
+        dest: "/etc/nginx/sites-available/{{ _nginx_site_name }}"
+        mode: "0644"
+      when: nginx_enable_ssl | bool
+      notify: test and reload nginx
+
+    - name: Remove default site
+      ansible.builtin.file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      notify: test and reload nginx
+
+    - name: Enable site
+      ansible.builtin.file:
+        src: "/etc/nginx/sites-available/{{ _nginx_site_name }}"
+        dest: "/etc/nginx/sites-enabled/{{ _nginx_site_name }}"
+        state: link
+      notify: test and reload nginx

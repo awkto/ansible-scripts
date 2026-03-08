@@ -1,0 +1,89 @@
+---
+- name: Install prerequisites
+  ansible.builtin.apt:
+    name:
+      - curl
+      - socat
+      - cron
+    state: present
+    update_cache: true
+
+- name: Download and install acme.sh
+  ansible.builtin.shell: |
+    curl https://get.acme.sh | sh -s email={{ acme_email }}
+  args:
+    creates: /root/.acme.sh/acme.sh
+
+- name: Set default CA
+  ansible.builtin.command: /root/.acme.sh/acme.sh --set-default-ca --server {{ acme_server }}
+  changed_when: false
+
+# --- Issue certificate ---
+- name: Issue certificate
+  when: acme_domain | length > 0
+  block:
+    - name: Build domain arguments
+      ansible.builtin.set_fact:
+        _acme_domain_args: >-
+          -d "{{ acme_domain }}"
+          {{ '-d "*.' + acme_domain + '"' if (acme_wildcard | bool) else '' }}
+
+    - name: Issue certificate via DigitalOcean DNS
+      ansible.builtin.shell: |
+        export DO_API_KEY="{{ acme_do_api_key }}"
+        /root/.acme.sh/acme.sh --issue \
+          --dns dns_dgon \
+          {{ _acme_domain_args }} \
+          --server {{ acme_server }} \
+          --days {{ acme_renewal_days }} \
+          {{ '--force' if (acme_force_renewal | bool) else '' }}
+      register: cert_result_do
+      changed_when: "'Cert success' in cert_result_do.stdout"
+      failed_when: cert_result_do.rc != 0 and 'Domains not changed' not in cert_result_do.stdout
+      when: acme_dns_provider == "digitalocean"
+
+    - name: Issue certificate via Azure DNS
+      ansible.builtin.shell: |
+        export AZUREDNS_SUBSCRIPTIONID="{{ acme_azure_subscription }}"
+        export AZUREDNS_TENANTID="{{ acme_azure_tenant }}"
+        export AZUREDNS_APPID="{{ acme_azure_client_id }}"
+        export AZUREDNS_CLIENTSECRET="{{ acme_azure_secret }}"
+        /root/.acme.sh/acme.sh --issue \
+          --dns dns_azure \
+          {{ _acme_domain_args }} \
+          --server {{ acme_server }} \
+          --days {{ acme_renewal_days }} \
+          {{ '--force' if (acme_force_renewal | bool) else '' }}
+      register: cert_result_az
+      changed_when: "'Cert success' in cert_result_az.stdout"
+      failed_when: cert_result_az.rc != 0 and 'Domains not changed' not in cert_result_az.stdout
+      when: acme_dns_provider == "azure"
+
+    # --- Install certificate to custom directory ---
+    - name: Install certificate to directory
+      when: acme_install_dir | length > 0
+      block:
+        - name: Create install directory
+          ansible.builtin.file:
+            path: "{{ acme_install_dir }}"
+            state: directory
+            mode: "0755"
+
+        - name: Install certificate files
+          ansible.builtin.shell: |
+            /root/.acme.sh/acme.sh --install-cert \
+              -d "{{ acme_domain }}" \
+              --cert-file "{{ acme_install_dir }}/cert.pem" \
+              --key-file "{{ acme_install_dir }}/key.pem" \
+              --fullchain-file "{{ acme_install_dir }}/fullchain.pem" \
+              {{ '--reloadcmd "' + acme_reload_cmd + '"' if acme_reload_cmd | length > 0 else '' }}
+
+    - name: Display certificate info
+      ansible.builtin.debug:
+        msg: |
+          Certificate issued for: {{ acme_domain }}{{ ' + *.' + acme_domain if (acme_wildcard | bool) else '' }}
+          DNS Provider: {{ acme_dns_provider }}
+          {% if acme_install_dir | length > 0 %}
+          Installed to: {{ acme_install_dir }}/
+          {% endif %}
+          Auto-renewal configured via cron.

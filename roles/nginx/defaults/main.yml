@@ -1,0 +1,7 @@
+nginx_create_proxy: false
+nginx_site_name: ""           # config filename, defaults to site_fqdn
+nginx_site_fqdn: ""           # server_name directive
+nginx_proxy_target: "127.0.0.1:3000"  # upstream address (host:port)
+nginx_enable_ssl: false
+nginx_ssl_cert: ""            # path to fullchain.pem on the target (or will generate self-signed)
+nginx_ssl_key: ""             # path to key.pem on the target (or will generate self-signed)

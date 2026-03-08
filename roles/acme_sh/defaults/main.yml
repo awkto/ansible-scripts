@@ -1,0 +1,24 @@
+acme_email: ""
+acme_server: "https://acme-v02.api.letsencrypt.org/directory"
+
+# DNS provider: digitalocean or azure
+acme_dns_provider: digitalocean
+
+# DigitalOcean
+acme_do_api_key: ""
+
+# Azure DNS
+acme_azure_subscription: ""
+acme_azure_tenant: ""
+acme_azure_client_id: ""
+acme_azure_secret: ""
+
+# Certificate issuance (optional — skip if acme_domain is empty)
+acme_domain: ""
+acme_wildcard: false
+acme_force_renewal: false
+acme_renewal_days: 30
+
+# Install location (optional — skip if acme_install_dir is empty)
+acme_install_dir: ""          # e.g. /etc/nginx/ssl/example.com
+acme_reload_cmd: ""           # e.g. "nginx -t && systemctl reload nginx"

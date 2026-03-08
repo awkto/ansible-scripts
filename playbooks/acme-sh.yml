@@ -1,0 +1,6 @@
+---
+- name: Install acme.sh and issue certificate
+  hosts: all
+  become: true
+  roles:
+    - acme_sh

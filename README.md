@@ -85,6 +85,45 @@ ansible-playbook playbooks/dns.yml \
   -e '{"dns_records": [{"name": "@", "type": "A", "value": "10.0.0.1"}, {"name": "gitlab", "type": "A", "value": "10.0.0.2"}]}'
 ```
 
+### Install Nginx
+
+Install nginx, optionally set up a reverse proxy site with SSL (self-signed or BYO certs).
+
+```bash
+# Just install nginx
+ansible-playbook playbooks/nginx.yml
+
+# Reverse proxy with self-signed SSL
+ansible-playbook playbooks/nginx.yml \
+  -e "nginx_create_proxy=true nginx_site_fqdn=app.example.com nginx_proxy_target=127.0.0.1:3000 nginx_enable_ssl=true"
+
+# Reverse proxy with existing certs (e.g. from acme.sh)
+ansible-playbook playbooks/nginx.yml \
+  -e "nginx_create_proxy=true nginx_site_fqdn=app.example.com nginx_proxy_target=127.0.0.1:3000 nginx_enable_ssl=true" \
+  -e "nginx_ssl_cert=/etc/nginx/ssl/app.example.com/fullchain.pem nginx_ssl_key=/etc/nginx/ssl/app.example.com/key.pem"
+```
+
+### Install acme.sh
+
+Install acme.sh for Let's Encrypt certificates via DNS verification (DigitalOcean or Azure DNS). Optionally issue and install a certificate.
+
+```bash
+# Just install acme.sh
+ansible-playbook playbooks/acme-sh.yml -e "acme_email=you@example.com acme_dns_provider=digitalocean acme_do_api_key=dop_v1_xxx"
+
+# Issue cert and install to a directory
+ansible-playbook playbooks/acme-sh.yml \
+  -e "acme_email=you@example.com acme_dns_provider=digitalocean acme_do_api_key=dop_v1_xxx" \
+  -e "acme_domain=app.example.com acme_install_dir=/etc/nginx/ssl/app.example.com" \
+  -e 'acme_reload_cmd="nginx -t && systemctl reload nginx"'
+
+# Issue wildcard cert via Azure DNS
+ansible-playbook playbooks/acme-sh.yml \
+  -e "acme_email=you@example.com acme_dns_provider=azure" \
+  -e "acme_azure_subscription=SUB_ID acme_azure_tenant=TENANT acme_azure_client_id=APP_ID acme_azure_secret=SECRET" \
+  -e "acme_domain=example.com acme_wildcard=true acme_install_dir=/etc/ssl/example.com"
+```
+
 ## Roles
 
 | Role | Description |
@@ -95,6 +134,8 @@ ansible-playbook playbooks/dns.yml \
 | `kubernetes` | k3s or RKE2 with TLS SAN configuration |
 | `cli_tools` | kubectl, doctl, gh, cloudflared, bw, bao |
 | `dns` | BIND, dnsmasq, or Unbound with zone/records |
+| `nginx` | Nginx with optional reverse proxy and SSL (self-signed or BYO) |
+| `acme_sh` | acme.sh with DigitalOcean or Azure DNS verification |
 
 ## Variables
 
