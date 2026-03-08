@@ -1,0 +1,103 @@
+{
+    "Dhcp4": {
+        "interfaces-config": {
+            "interfaces": {{ kea_interfaces | to_json }}
+        },
+
+{% if kea_lease_backend == "memfile" %}
+        "lease-database": {
+            "type": "memfile",
+            "lfc-interval": 3600
+        },
+{% elif kea_lease_backend == "postgresql" %}
+        "lease-database": {
+            "type": "postgresql",
+            "host": "{{ kea_db_host }}",
+            "port": {{ kea_db_port }},
+            "name": "{{ kea_db_name }}",
+            "user": "{{ kea_db_user }}",
+            "password": "{{ kea_db_password }}"
+        },
+{% elif kea_lease_backend == "mysql" %}
+        "lease-database": {
+            "type": "mysql",
+            "host": "{{ kea_db_host }}",
+            "port": {{ kea_db_port }},
+            "name": "{{ kea_db_name }}",
+            "user": "{{ kea_db_user }}",
+            "password": "{{ kea_db_password }}"
+        },
+{% endif %}
+
+{% if kea_hooks | length > 0 %}
+        "hooks-libraries": [
+{% for hook in kea_hooks %}
+            {
+                "library": "/usr/lib/x86_64-linux-gnu/kea/hooks/{{ hook }}.so"
+            }{{ "," if not loop.last else "" }}
+{% endfor %}
+        ],
+{% endif %}
+
+        "subnet4": [
+{% for subnet in kea_subnets %}
+            {
+                "id": {{ subnet.id }},
+                "subnet": "{{ subnet.subnet }}",
+                "pools": [
+{% for pool in subnet.pools %}
+                    { "pool": "{{ pool.pool }}" }{{ "," if not loop.last else "" }}
+{% endfor %}
+                ],
+                "option-data": [
+{% if subnet.option_routers is defined %}
+                    {
+                        "name": "routers",
+                        "data": "{{ subnet.option_routers }}"
+                    },
+{% endif %}
+{% if subnet.option_dns is defined %}
+                    {
+                        "name": "domain-name-servers",
+                        "data": "{{ subnet.option_dns }}"
+                    }
+{% endif %}
+                ],
+{% if subnet.valid_lifetime is defined %}
+                "valid-lifetime": {{ subnet.valid_lifetime }},
+{% endif %}
+                "reservations": [
+{% set ns = namespace(first=true) %}
+{% for res in kea_reservations if res.subnet_id == subnet.id %}
+{% if not ns.first %},{% endif %}
+{% set ns.first = false %}
+                    {
+                        "hw-address": "{{ res.hw_address }}"
+{% if res.ip_address is defined %}
+                        ,"ip-address": "{{ res.ip_address }}"
+{% endif %}
+{% if res.hostname is defined %}
+                        ,"hostname": "{{ res.hostname }}"
+{% endif %}
+                    }
+{% endfor %}
+                ]
+            }{{ "," if not loop.last else "" }}
+{% endfor %}
+        ],
+
+        "loggers": [
+            {
+                "name": "kea-dhcp4",
+                "output-options": [
+                    {
+                        "output": "/var/log/kea/kea-dhcp4.log",
+                        "maxsize": 10485760,
+                        "maxver": 3
+                    }
+                ],
+                "severity": "INFO"
+            }
+        ]
+    }
+}

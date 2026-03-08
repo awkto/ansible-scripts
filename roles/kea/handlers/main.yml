@@ -1,0 +1,10 @@
+---
+- name: restart kea-dhcp4
+  ansible.builtin.systemd:
+    name: "{{ 'isc-kea-dhcp4-server' if kea_install_source == 'isc' else 'kea-dhcp4-server' }}"
+    state: restarted
+
+- name: restart kea-ctrl-agent
+  ansible.builtin.systemd:
+    name: "{{ 'isc-kea-ctrl-agent' if kea_install_source == 'isc' else 'kea-ctrl-agent' }}"
+    state: restarted

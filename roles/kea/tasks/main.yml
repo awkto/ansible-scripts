@@ -1,0 +1,133 @@
+---
+# --- Install from ISC Cloudsmith repo ---
+- name: Install Kea from ISC Cloudsmith repository
+  when: kea_install_source == "isc"
+  block:
+    - name: Install prerequisites
+      ansible.builtin.apt:
+        name:
+          - curl
+          - apt-transport-https
+        state: present
+        update_cache: true
+
+    - name: Add ISC Kea Cloudsmith repository
+      ansible.builtin.shell: |
+        curl -1sLf 'https://dl.cloudsmith.io/public/isc/kea-{{ kea_isc_version }}/setup.deb.sh' | bash
+      args:
+        creates: "/etc/apt/sources.list.d/isc-kea-{{ kea_isc_version }}.list"
+
+    - name: Install ISC Kea packages
+      ansible.builtin.apt:
+        name: "{{ _kea_isc_packages }}"
+        state: present
+        update_cache: true
+      vars:
+        _kea_isc_packages: >-
+          {{
+            ['isc-kea-dhcp4-server', 'isc-kea-common', 'isc-kea-admin']
+            + (['isc-kea-ctrl-agent'] if kea_ctrl_agent else [])
+          }}
+
+# --- Install from distro repos ---
+- name: Install Kea from distro repositories
+  when: kea_install_source == "distro"
+  block:
+    - name: Install Kea packages (distro)
+      ansible.builtin.apt:
+        name: "{{ _kea_distro_packages }}"
+        state: present
+        update_cache: true
+      vars:
+        _kea_distro_packages: >-
+          {{
+            ['kea-dhcp4-server', 'kea-common']
+            + (['kea-ctrl-agent'] if kea_ctrl_agent else [])
+          }}
+
+# --- PostgreSQL backend setup ---
+- name: Initialize PostgreSQL lease database
+  when: kea_lease_backend == "postgresql"
+  block:
+    - name: Install PostgreSQL client library for Kea
+      ansible.builtin.apt:
+        name: "{{ 'isc-kea-admin' if kea_install_source == 'isc' else 'kea-common' }}"
+        state: present
+
+    - name: Check if Kea DB schema already exists
+      become_user: postgres
+      community.postgresql.postgresql_query:
+        db: "{{ kea_db_name }}"
+        query: "SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename = 'lease4';"
+      register: _kea_schema_check
+      failed_when: false
+
+    - name: Initialize Kea database schema
+      ansible.builtin.command: >
+        kea-admin db-init pgsql
+        -u {{ kea_db_user }}
+        -p {{ kea_db_password }}
+        -n {{ kea_db_name }}
+        -h {{ kea_db_host }}
+      when: _kea_schema_check.rowcount is not defined or _kea_schema_check.rowcount == 0
+
+# --- MySQL backend setup ---
+- name: Initialize MySQL lease database
+  when: kea_lease_backend == "mysql"
+  block:
+    - name: Check if Kea MySQL schema already exists
+      ansible.builtin.command: >
+        mysql -u {{ kea_db_user }} -p{{ kea_db_password }}
+        -h {{ kea_db_host }} {{ kea_db_name }}
+        -e "SELECT 1 FROM lease4 LIMIT 1;"
+      register: _kea_mysql_check
+      failed_when: false
+      changed_when: false
+
+    - name: Initialize Kea MySQL database schema
+      ansible.builtin.command: >
+        kea-admin db-init mysql
+        -u {{ kea_db_user }}
+        -p {{ kea_db_password }}
+        -n {{ kea_db_name }}
+        -h {{ kea_db_host }}
+      when: _kea_mysql_check.rc != 0
+
+# --- Log directory ---
+- name: Create Kea log directory
+  ansible.builtin.file:
+    path: /var/log/kea
+    state: directory
+    mode: "0755"
+
+# --- Configuration ---
+- name: Deploy kea-dhcp4.conf
+  when: kea_dhcp4
+  ansible.builtin.template:
+    src: kea-dhcp4.conf.j2
+    dest: /etc/kea/kea-dhcp4.conf
+    mode: "0644"
+  notify: restart kea-dhcp4
+
+- name: Deploy kea-ctrl-agent.conf
+  when: kea_ctrl_agent
+  ansible.builtin.template:
+    src: kea-ctrl-agent.conf.j2
+    dest: /etc/kea/kea-ctrl-agent.conf
+    mode: "0644"
+  notify: restart kea-ctrl-agent
+
+# --- Services ---
+- name: Enable and start kea-dhcp4
+  when: kea_dhcp4
+  ansible.builtin.systemd:
+    name: "{{ 'isc-kea-dhcp4-server' if kea_install_source == 'isc' else 'kea-dhcp4-server' }}"
+    enabled: true
+    state: started
+
+- name: Enable and start kea-ctrl-agent
+  when: kea_ctrl_agent
+  ansible.builtin.systemd:
+    name: "{{ 'isc-kea-ctrl-agent' if kea_install_source == 'isc' else 'kea-ctrl-agent' }}"
+    enabled: true
+    state: started

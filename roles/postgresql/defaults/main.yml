@@ -1,0 +1,18 @@
+# Install and start PostgreSQL
+postgresql_version: "16"
+
+# Optional: create a database
+postgresql_db: ""              # e.g. "kea"
+
+# Optional: create a user with password
+postgresql_user: ""            # e.g. "kea"
+postgresql_password: ""        # e.g. "changeme"
+
+# Grant all privileges on postgresql_db to postgresql_user
+postgresql_grant_db: true
+
+# Listen addresses (default: localhost only)
+postgresql_listen_addresses: "localhost"
+
+# Allow md5 auth from this CIDR (added to pg_hba.conf)
+postgresql_hba_cidr: ""        # e.g. "127.0.0.1/32" — leave empty to skip

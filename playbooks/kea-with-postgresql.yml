@@ -1,0 +1,34 @@
+---
+# Deploy Kea DHCPv4 with PostgreSQL lease backend (both on same VM)
+#
+# Required vars:
+#   kea_db_password     - database password for the kea user
+#
+# Example:
+#   ansible-playbook playbooks/kea-with-postgresql.yml \
+#     -e "kea_db_password=supersecret"
+#
+#   ansible-playbook playbooks/kea-with-postgresql.yml \
+#     -e "kea_db_password=supersecret" \
+#     -e '{"kea_subnets": [{"id": 1, "subnet": "10.0.0.0/24", "pools": [{"pool": "10.0.0.100-10.0.0.200"}], "option_routers": "10.0.0.1", "option_dns": "1.1.1.1"}]}'
+
+- name: Kea DHCP with PostgreSQL lease backend
+  hosts: all
+  become: true
+
+  vars:
+    # PostgreSQL role — create the kea database and user
+    postgresql_db: "kea"
+    postgresql_user: "kea"
+    postgresql_password: "{{ kea_db_password }}"
+    postgresql_hba_cidr: "127.0.0.1/32"
+
+    # Kea role — use PostgreSQL backend
+    kea_lease_backend: "postgresql"
+    kea_db_host: "localhost"
+    kea_db_name: "kea"
+    kea_db_user: "kea"
+
+  roles:
+    - postgresql
+    - kea

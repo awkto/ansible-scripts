@@ -1,0 +1,32 @@
+{
+    "Control-agent": {
+        "http-host": "{{ kea_ctrl_agent_address }}",
+        "http-port": {{ kea_ctrl_agent_port }},
+
+        "authentication": {
+            "type": "",
+            "clients": []
+        },
+
+        "control-sockets": {
+            "dhcp4": {
+                "socket-type": "unix",
+                "socket-name": "/run/kea/kea4-ctrl-socket"
+            }
+        },
+
+        "loggers": [
+            {
+                "name": "kea-ctrl-agent",
+                "output-options": [
+                    {
+                        "output": "/var/log/kea/kea-ctrl-agent.log",
+                        "maxsize": 10485760,
+                        "maxver": 3
+                    }
+                ],
+                "severity": "INFO"
+            }
+        ]
+    }
+}

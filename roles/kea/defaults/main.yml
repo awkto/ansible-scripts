@@ -1,0 +1,53 @@
+# Installation source: "isc" (Cloudsmith repo, latest) or "distro" (Ubuntu packages)
+kea_install_source: "isc"
+kea_isc_version: "3-0"        # used for Cloudsmith repo URL (e.g. 3-0, 2-6)
+
+# Components to enable
+kea_dhcp4: true
+kea_ctrl_agent: false          # deprecated in Kea 3.0+, enable for older versions
+
+# Lease backend: "memfile", "postgresql", or "mysql"
+kea_lease_backend: "memfile"
+
+# PostgreSQL backend settings (used when kea_lease_backend == "postgresql")
+kea_db_host: "localhost"
+kea_db_port: 5432
+kea_db_name: "kea"
+kea_db_user: "kea"
+kea_db_password: ""
+
+# Hook libraries to load (list of library basenames without path)
+# Available open-source hooks in Kea 3.0+:
+#   libdhcp_lease_cmds, libdhcp_stat_cmds, libdhcp_ha,
+#   libdhcp_flex_option, libdhcp_bootp, libdhcp_run_script,
+#   libdhcp_ping_check, libdhcp_ddns_tuning, libdhcp_flex_id,
+#   libdhcp_host_cmds, libdhcp_subnet_cmds, libdhcp_class_cmds,
+#   libdhcp_limits, libdhcp_radius, libdhcp_gss_tsig,
+#   libdhcp_forensic_log, libdhcp_host_cache, libdhcp_perfmon
+kea_hooks: []
+#  - libdhcp_lease_cmds
+#  - libdhcp_stat_cmds
+
+# Control agent settings
+kea_ctrl_agent_address: "127.0.0.1"
+kea_ctrl_agent_port: 8000
+
+# DHCPv4 interface(s)
+kea_interfaces: ["*"]
+
+# DHCPv4 subnet configuration
+kea_subnets:
+  - id: 1
+    subnet: "192.168.1.0/24"
+    pools:
+      - pool: "192.168.1.100-192.168.1.200"
+    option_routers: "192.168.1.1"
+    option_dns: "1.1.1.1, 8.8.8.8"
+    valid_lifetime: 4000
+
+# Host reservations (optional, per-subnet by id)
+kea_reservations: []
+#  - subnet_id: 1
+#    hw_address: "aa:bb:cc:dd:ee:ff"
+#    ip_address: "192.168.1.50"
+#    hostname: "myhost"

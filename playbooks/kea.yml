@@ -1,0 +1,15 @@
+---
+# Install Kea DHCPv4 server
+#
+# Example (memfile backend):
+#   ansible-playbook playbooks/kea.yml
+#
+# Example (custom subnet):
+#   ansible-playbook playbooks/kea.yml \
+#     -e '{"kea_subnets": [{"id": 1, "subnet": "10.0.0.0/24", "pools": [{"pool": "10.0.0.100-10.0.0.200"}], "option_routers": "10.0.0.1", "option_dns": "1.1.1.1"}]}'
+
+- name: Install and configure Kea DHCP
+  hosts: all
+  become: true
+  roles:
+    - kea

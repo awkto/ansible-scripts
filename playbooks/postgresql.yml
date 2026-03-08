@@ -1,0 +1,14 @@
+---
+# Install PostgreSQL, optionally create a database and user
+#
+# Examples:
+#   ansible-playbook playbooks/postgresql.yml
+#
+#   ansible-playbook playbooks/postgresql.yml \
+#     -e "postgresql_db=myapp postgresql_user=myapp postgresql_password=secret"
+
+- name: Install and configure PostgreSQL
+  hosts: all
+  become: true
+  roles:
+    - postgresql
