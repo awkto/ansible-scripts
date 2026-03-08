@@ -1,0 +1,36 @@
+---
+# Install nginx reverse proxy + real LE cert via acme.sh
+#
+# Required vars:
+#   site_fqdn          - e.g. app.example.com
+#   proxy_target        - e.g. 127.0.0.1:3000
+#   acme_email          - e.g. certs@jixi.ca
+#   acme_dns_provider   - digitalocean or azure
+#   acme_do_api_key     - (if digitalocean)
+#
+# Example:
+#   ansible-playbook playbooks/nginx-with-acme.yml \
+#     -e "site_fqdn=app.example.com proxy_target=127.0.0.1:3000" \
+#     -e "acme_email=certs@jixi.ca acme_dns_provider=digitalocean acme_do_api_key=dop_v1_xxx"
+
+- name: Nginx reverse proxy with Let's Encrypt certificate
+  hosts: all
+  become: true
+
+  vars:
+    # Wire shared vars into each role's namespace
+    nginx_create_proxy: true
+    nginx_site_fqdn: "{{ site_fqdn }}"
+    nginx_proxy_target: "{{ proxy_target }}"
+    nginx_enable_ssl: true
+    # Start with self-signed, acme.sh will overwrite
+    nginx_ssl_cert: ""
+    nginx_ssl_key: ""
+
+    acme_domain: "{{ site_fqdn }}"
+    acme_install_dir: "/etc/nginx/ssl/{{ site_fqdn }}"
+    acme_reload_cmd: "nginx -t && systemctl reload nginx"
+
+  roles:
+    - nginx
+    - acme_sh

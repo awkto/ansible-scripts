@@ -1,0 +1,59 @@
+---
+# Install GitLab + real LE cert via acme.sh
+#
+# Required vars:
+#   site_fqdn           - e.g. gitlab.example.com
+#   acme_email           - e.g. certs@jixi.ca
+#   acme_dns_provider    - digitalocean or azure
+#   acme_do_api_key      - (if digitalocean)
+#
+# Optional:
+#   gitlab_edition       - gitlab-ce (default) or gitlab-ee
+#   gitlab_version       - pin a version
+#
+# Example:
+#   ansible-playbook playbooks/gitlab-with-acme.yml \
+#     -e "site_fqdn=gitlab.example.com" \
+#     -e "acme_email=certs@jixi.ca acme_dns_provider=digitalocean acme_do_api_key=dop_v1_xxx"
+
+- name: GitLab with Let's Encrypt certificate
+  hosts: all
+  become: true
+
+  vars:
+    gitlab_external_url: "https://{{ site_fqdn }}"
+    gitlab_ssl_enabled: true
+    # Don't copy certs from controller — acme.sh will create them on target
+    gitlab_ssl_cert_path: ""
+    gitlab_ssl_key_path: ""
+
+    acme_domain: "{{ site_fqdn }}"
+    acme_install_dir: "/etc/gitlab/ssl"
+    acme_reload_cmd: "gitlab-ctl hup nginx"
+
+  roles:
+    - gitlab
+    - acme_sh
+
+  post_tasks:
+    - name: Symlink cert files for GitLab naming convention
+      ansible.builtin.file:
+        src: "/etc/gitlab/ssl/{{ item.src }}"
+        dest: "/etc/gitlab/ssl/{{ site_fqdn }}.{{ item.ext }}"
+        state: link
+        force: true
+      loop:
+        - { src: fullchain.pem, ext: crt }
+        - { src: key.pem, ext: key }
+
+    - name: Set cert file permissions
+      ansible.builtin.file:
+        path: "/etc/gitlab/ssl/{{ item }}"
+        mode: "0600"
+      loop:
+        - fullchain.pem
+        - key.pem
+        - cert.pem
+
+    - name: Reconfigure GitLab to pick up certs
+      ansible.builtin.command: gitlab-ctl reconfigure

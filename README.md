@@ -124,6 +124,26 @@ ansible-playbook playbooks/acme-sh.yml \
   -e "acme_domain=example.com acme_wildcard=true acme_install_dir=/etc/ssl/example.com"
 ```
 
+### Combo: Nginx + acme.sh
+
+Single command: nginx reverse proxy with a real Let's Encrypt cert.
+
+```bash
+ansible-playbook playbooks/nginx-with-acme.yml \
+  -e "site_fqdn=app.example.com proxy_target=127.0.0.1:3000" \
+  -e "acme_email=certs@jixi.ca acme_dns_provider=digitalocean acme_do_api_key=dop_v1_xxx"
+```
+
+### Combo: GitLab + acme.sh
+
+Single command: GitLab with a real Let's Encrypt cert (handles GitLab's cert naming convention).
+
+```bash
+ansible-playbook playbooks/gitlab-with-acme.yml \
+  -e "site_fqdn=gitlab.example.com" \
+  -e "acme_email=certs@jixi.ca acme_dns_provider=digitalocean acme_do_api_key=dop_v1_xxx"
+```
+
 ## Roles
 
 | Role | Description |
