@@ -6,11 +6,16 @@
     enabled: false
   failed_when: false
 
-- name: Set resolv.conf to use localhost
+- name: Remove resolv.conf symlink (breaks when systemd-resolved is stopped)
+  ansible.builtin.file:
+    path: /etc/resolv.conf
+    state: absent
+
+- name: Create resolv.conf with working nameservers
   ansible.builtin.copy:
     content: |
-      nameserver 127.0.0.1
       nameserver 1.1.1.1
+      nameserver 8.8.8.8
     dest: /etc/resolv.conf
     mode: "0644"
 
